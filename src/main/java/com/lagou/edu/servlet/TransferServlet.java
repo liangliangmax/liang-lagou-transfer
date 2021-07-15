@@ -2,6 +2,7 @@ package com.lagou.edu.servlet;
 
 import com.lagou.edu.factory.ProxyFactory;
 import com.lagou.edu.service.impl.TransferServiceImpl;
+import com.lagou.edu.utils.IocUtil;
 import com.lagou.edu.utils.JsonUtils;
 import com.lagou.edu.pojo.Result;
 import com.lagou.edu.service.TransferService;
@@ -26,7 +27,7 @@ public class TransferServlet extends HttpServlet {
     // 从工厂获取委托对象（委托对象是增强了事务控制的功能）
 
     // 首先从BeanFactory获取到proxyFactory代理工厂的实例化对象
-    private TransferService transferService = null ;
+    private TransferService transferService = (TransferService) IocUtil.getBean("transferService");
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {

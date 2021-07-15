@@ -6,15 +6,14 @@ import com.lagou.edu.service.TransferService;
 import com.lagou.edu.utils.ConnectionUtils;
 import com.lagou.edu.utils.TransactionManager;
 import com.liang.spring.core.annotation.Autowired;
+import com.liang.spring.core.annotation.Component;
+import com.liang.spring.core.annotation.Service;
 
 /**
  * @author 应癫
  */
+@Service("transferService")
 public class TransferServiceImpl implements TransferService {
-
-    //private AccountDao accountDao = new JdbcAccountDaoImpl();
-
-    // private AccountDao accountDao = (AccountDao) BeanFactory.getBean("accountDao");
 
     // 最佳状态
     @Autowired

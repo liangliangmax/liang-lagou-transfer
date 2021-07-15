@@ -101,9 +101,62 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
     }
 
 
-
+    /**
+     * 先吧所有的带指定注解的bean创建出来，然后是给bean里面的属性赋值
+     */
     @Override
     protected void initBean() {
+
+        for (Class<?> clazz : getClasses()) {
+
+            if(isNeedInit(clazz)){
+
+                doInit(clazz);
+
+            }
+        }
+
+    }
+
+    private void doInit(Class<?> clazz) {
+        //将class进行实例化
+        try {
+            //生成一个空对象，将对象放入bean的map中
+            Object o = clazz.newInstance();
+
+            //为生成的实例取id
+            //如果指定了id，则直接取id，如果没有指定，则用类名
+            //先默认给个类名为id
+            String id = StringUtils.uncapitalize(clazz.getSimpleName());
+
+            Annotation[] declaredAnnotations = clazz.getDeclaredAnnotations();
+
+            for (Annotation declaredAnnotation : declaredAnnotations) {
+
+                if(declaredAnnotation instanceof Service){
+                    String value = ((Service) declaredAnnotation).value();
+                    if(StringUtils.isNotBlank(value)){
+                        id = value;
+                    }
+                }else if(declaredAnnotation instanceof Repository){
+                    String value = ((Repository) declaredAnnotation).value();
+                    if(StringUtils.isNotBlank(value)){
+                        id = value;
+                    }
+                }else if(declaredAnnotation instanceof Component){
+                    String value = ((Component) declaredAnnotation).value();
+                    if(StringUtils.isNotBlank(value)){
+                        id = value;
+                    }
+                }
+
+            }
+            singletonObject.put(id,o);
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
 
     }
 
