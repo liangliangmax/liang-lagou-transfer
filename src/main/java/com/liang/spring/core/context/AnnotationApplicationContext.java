@@ -2,6 +2,7 @@ package com.liang.spring.core.context;
 
 import com.liang.spring.core.annotation.*;
 import com.liang.spring.core.scaner.ClassScanner;
+import com.liang.spring.core.util.ReflectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
@@ -100,6 +102,53 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
 
 
 
+    @Override
+    protected void initBean() {
+
+    }
+
+
+    @Override
+    protected void polpulateBean() {
+
+        for (Class<?> clazz : getClasses()) {
+
+            //如果标注了Configuration，先看看有没有@Value的属性，有的话直接注入属性
+            if(clazz.isAnnotationPresent(Configuration.class)){
+
+
+                Field[] declaredFields = clazz.getDeclaredFields();
+
+                for (Field declaredField : declaredFields) {
+
+                    if(declaredField.isAnnotationPresent(Value.class)){
+
+                        Value valueAnno = declaredField.getAnnotation(Value.class);
+
+                        String regex = valueAnno.value();
+
+                        if(StringUtils.isBlank(regex)){
+
+                            throw new RuntimeException(clazz.getName()+"的"+declaredField.getName()+"上占位符信息不能为空");
+                        }
+
+                        if(!regex.contains("${")){
+
+                        }
+
+
+                    }
+
+                }
+
+
+            }
+
+        }
+
+
+
+    }
 
 
 }

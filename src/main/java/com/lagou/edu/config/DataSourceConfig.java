@@ -26,7 +26,7 @@ public class DataSourceConfig {
 
 
     @Bean
-    public DataSource getDataSource(){
+    public DataSource dataSource(){
 
         DruidDataSource druidDataSource = new DruidDataSource();
 

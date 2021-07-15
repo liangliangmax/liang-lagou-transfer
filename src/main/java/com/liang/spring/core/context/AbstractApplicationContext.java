@@ -34,11 +34,16 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
         loadProperties();
 
 
+        initBean();
+
+
+        polpulateBean();
 
 
 
 
     }
+
 
 
 
@@ -50,6 +55,9 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
 
     abstract void loadProperties();
 
+    protected abstract void initBean();
+
+    protected abstract void polpulateBean();
 
 
 
