@@ -11,9 +11,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Set;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.*;
 
 
 public class AnnotationApplicationContext extends AbstractApplicationContext {
@@ -172,6 +172,8 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
 
                 Field[] declaredFields = clazz.getDeclaredFields();
 
+                Object bean = getBean(clazz);
+
                 for (Field declaredField : declaredFields) {
 
                     if(declaredField.isAnnotationPresent(Value.class)){
@@ -185,7 +187,7 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
                             throw new RuntimeException(clazz.getName()+"的"+declaredField.getName()+"上占位符信息不能为空");
                         }
 
-                        Object bean = getBean(clazz);
+
                         //如果没用表达式，直接写的字符串，则直接将字符串赋值给属性
                         if(bean !=null){
                             if(!regex.contains("${")){
@@ -202,11 +204,41 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
                             }
                         }
                     }
+                }
+
+
+                //处理configuration中@Bean的注解
+                Method[] declaredMethods = clazz.getDeclaredMethods();
+
+                for (Method declaredMethod : declaredMethods) {
+                    if(declaredMethod.isAnnotationPresent(Bean.class)){
+                        try {
+                            List<Object> paraList = new ArrayList<>();
+                            Class<?>[] parameterTypes = declaredMethod.getParameterTypes();
+                            for (Class<?> parameterType : parameterTypes) {
+                                Object paraObj = getBean(parameterType);
+                                paraList.add(paraObj);
+                            }
+
+                            Object beanObj = declaredMethod.invoke(bean, null);
+                            if(beanObj != null){
+                                singletonObject.put(declaredMethod.getName(),beanObj);
+                            }
+
+                        } catch (IllegalAccessException e) {
+                            e.printStackTrace();
+                        } catch (InvocationTargetException e) {
+                            e.printStackTrace();
+                        }
+                    }
 
                 }
 
 
             }
+
+
+
 
         }
 
