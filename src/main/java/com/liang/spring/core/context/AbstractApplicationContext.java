@@ -41,7 +41,7 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
         initBean();
 
 
-        polpulateBean();
+        populateBean();
 
 
 
@@ -61,7 +61,7 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
 
     protected abstract void initBean();
 
-    protected abstract void polpulateBean();
+    protected abstract void populateBean();
 
 
 

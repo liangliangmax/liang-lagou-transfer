@@ -162,13 +162,13 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
 
 
     @Override
-    protected void polpulateBean() {
+    protected void populateBean() {
 
+        //先填充配置类
         for (Class<?> clazz : getClasses()) {
 
             //如果标注了Configuration，先看看有没有@Value的属性，有的话直接注入属性
             if(clazz.isAnnotationPresent(Configuration.class)){
-
 
                 Field[] declaredFields = clazz.getDeclaredFields();
 
@@ -185,11 +185,22 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
                             throw new RuntimeException(clazz.getName()+"的"+declaredField.getName()+"上占位符信息不能为空");
                         }
 
-                        if(!regex.contains("${")){
+                        Object bean = getBean(clazz);
+                        //如果没用表达式，直接写的字符串，则直接将字符串赋值给属性
+                        if(bean !=null){
+                            if(!regex.contains("${")){
+                                ReflectionUtils.setFieldValue(bean,declaredField.getName(),regex);
+                            }else {
+                                String propKey = regex.replace("${", "").replace("}", "");
 
+                                String propValue = getProperties(propKey);
+
+                                if(StringUtils.isBlank(propValue)){
+                                    throw new RuntimeException("无法找到"+propKey+"对应的配置文件");
+                                }
+                                ReflectionUtils.setFieldValue(bean,declaredField.getName(),propValue);
+                            }
                         }
-
-
                     }
 
                 }
