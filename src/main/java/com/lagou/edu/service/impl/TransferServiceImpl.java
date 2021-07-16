@@ -3,10 +3,7 @@ package com.lagou.edu.service.impl;
 import com.lagou.edu.dao.AccountDao;
 import com.lagou.edu.pojo.Account;
 import com.lagou.edu.service.TransferService;
-import com.lagou.edu.utils.ConnectionUtils;
-import com.lagou.edu.utils.TransactionManager;
 import com.liang.spring.core.annotation.Autowired;
-import com.liang.spring.core.annotation.Component;
 import com.liang.spring.core.annotation.Service;
 import com.liang.spring.core.annotation.Transactional;
 

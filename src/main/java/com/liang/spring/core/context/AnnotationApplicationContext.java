@@ -301,17 +301,16 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
                         //当autowired完成之后，就可以去实例化之前没有实例化的bean标签
                         generateBeanAnnotation(bean);
 
-
                     }
-
                 }
-
-
-
             });
-
-
         }
+
+        //最后在处理一下声明式事务的代理类
+        singletonObject.forEach((beanName,bean)->{
+
+
+        });
 
     }
 
