@@ -6,8 +6,6 @@ import com.liang.spring.core.scaner.ClassScanner;
 import com.liang.spring.core.util.GenerateBeanNameUtil;
 import com.liang.spring.core.util.ReflectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
