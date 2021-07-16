@@ -2,8 +2,9 @@ package com.liang.spring.core;
 
 import com.liang.spring.core.context.ApplicationContext;
 
+@FunctionalInterface
 public interface ApplicationContextAware {
 
-    public void setApplicationContext(ApplicationContext applicationContext);
+    void setApplicationContext(ApplicationContext applicationContext);
 
 }

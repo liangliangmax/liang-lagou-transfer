@@ -44,11 +44,10 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
         populateBean();
 
 
+        afterProcess();
 
 
     }
-
-
 
 
     /**
@@ -65,6 +64,10 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
 
     //填充bean
     abstract void populateBean();
+
+
+    //完成一些其他事情
+    abstract void afterProcess();
 
 
 

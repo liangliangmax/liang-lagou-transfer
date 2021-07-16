@@ -1,5 +1,6 @@
 package com.liang.spring.core.context;
 
+import com.liang.spring.core.ApplicationContextAware;
 import com.liang.spring.core.annotation.*;
 import com.liang.spring.core.scaner.ClassScanner;
 import com.liang.spring.core.util.ReflectionUtils;
@@ -13,6 +14,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.*;
 
 
@@ -295,8 +297,35 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
 
         }
 
-        System.out.println(1111);
+    }
 
+    @Override
+    void afterProcess() {
+
+        for (Object bean : singletonObject.values()) {
+
+            if(bean instanceof ApplicationContextAware){
+
+                Method[] declaredMethods = ApplicationContextAware.class.getDeclaredMethods();
+
+                for (Method declaredMethod : declaredMethods) {
+
+                    try {
+                        declaredMethod.invoke(bean,this);
+
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    } catch (InvocationTargetException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+
+
+            }
+
+
+        }
 
     }
 
