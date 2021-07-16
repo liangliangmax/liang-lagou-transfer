@@ -26,6 +26,9 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
 
     protected static Map<String,Object> singletonObject = new ConcurrentHashMap<>();  // 存储对象
 
+
+    protected static Map<String,Object> notFinishedObject = new ConcurrentHashMap<>();  // 存放一些还没创建完的对象
+
     public AbstractApplicationContext(String scanPath){
         refresh(scanPath);
     }
@@ -108,17 +111,37 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
     @Override
     public Object getBean(String beanName) {
 
-        return singletonObject.get(beanName);
+        Object o = singletonObject.get(beanName);
+
+        if(o != null) return o;
+
+        Object o1 = notFinishedObject.get(beanName);
+
+        if(o1 != null) return o1;
+        return null;
     }
 
     @Override
     public Object getBean(Class beanType) {
 
+        //先查一级缓存，然后查二级缓存
         Collection<Object> values = singletonObject.values();
 
         if(!CollectionsUtil.isEmpty(values)){
 
             for (Object value : values) {
+
+                if(value.getClass() == beanType || beanType.isAssignableFrom(value.getClass())){
+                    return value;
+                }
+            }
+        }
+
+        Collection<Object> notFinishedValues = notFinishedObject.values();
+
+        if(!CollectionsUtil.isEmpty(notFinishedValues)){
+
+            for (Object value : notFinishedValues) {
 
                 if(value.getClass() == beanType || beanType.isAssignableFrom(value.getClass())){
                     return value;
@@ -144,4 +167,6 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
     public boolean containsBean(String beanName) {
         return singletonObject.containsKey(beanName);
     }
+
+
 }

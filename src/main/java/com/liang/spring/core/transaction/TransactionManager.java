@@ -1,9 +1,15 @@
 package com.liang.spring.core.transaction;
 
 
-public class TransactionManager {
+public interface TransactionManager {
 
 
+    void beginTransaction();
+
+
+    void commit();
+
+    void rollback();
 
 
 }

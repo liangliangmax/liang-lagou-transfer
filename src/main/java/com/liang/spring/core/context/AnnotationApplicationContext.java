@@ -3,6 +3,7 @@ package com.liang.spring.core.context;
 import com.liang.spring.core.ApplicationContextAware;
 import com.liang.spring.core.annotation.*;
 import com.liang.spring.core.scaner.ClassScanner;
+import com.liang.spring.core.util.GenerateBeanNameUtil;
 import com.liang.spring.core.util.ReflectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -105,6 +106,8 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
 
     /**
      * 先吧所有的带指定注解的bean创建出来，然后是给bean里面的属性赋值
+     *
+     * 将空实例放到一个未完成的map中，等待之后填充属性
      */
     @Override
     protected void initBean() {
@@ -129,31 +132,9 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
             //为生成的实例取id
             //如果指定了id，则直接取id，如果没有指定，则用类名
             //先默认给个类名为id
-            String id = StringUtils.uncapitalize(clazz.getSimpleName());
+            String id = GenerateBeanNameUtil.generateBeanName(clazz);
 
-            Annotation[] declaredAnnotations = clazz.getDeclaredAnnotations();
-
-            for (Annotation declaredAnnotation : declaredAnnotations) {
-
-                if(declaredAnnotation instanceof Service){
-                    String value = ((Service) declaredAnnotation).value();
-                    if(StringUtils.isNotBlank(value)){
-                        id = value;
-                    }
-                }else if(declaredAnnotation instanceof Repository){
-                    String value = ((Repository) declaredAnnotation).value();
-                    if(StringUtils.isNotBlank(value)){
-                        id = value;
-                    }
-                }else if(declaredAnnotation instanceof Component){
-                    String value = ((Component) declaredAnnotation).value();
-                    if(StringUtils.isNotBlank(value)){
-                        id = value;
-                    }
-                }
-
-            }
-            singletonObject.put(id,o);
+            notFinishedObject.put(id,o);
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
@@ -163,11 +144,25 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
     }
 
 
+    /**
+     * 填充bean里面的属性
+     *
+     * 先处理带Configuration的，如果里面属性标记了@Value，这种是最优先处理的
+     *
+     * 如果Configuration中有@Autowired的属性，则这个类里面的bean先不初始化
+     * 如果Configuration中没有@Autowired的属性，则这个类中的bean直接实例化然后填充别的属性
+     *
+     *
+     *
+     */
     @Override
     protected void populateBean() {
 
         //先填充配置类
         for (Class<?> clazz : getClasses()) {
+
+            //标记是否可以完成生成bean
+            boolean canFinish = true;
 
             //如果标注了Configuration，先看看有没有@Value的属性，有的话直接注入属性
             if(clazz.isAnnotationPresent(Configuration.class)){
@@ -206,53 +201,40 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
                             }
                         }
                     }
+
+                    //此时autowired还不能处理，
+                    if(declaredField.isAnnotationPresent(Autowired.class)){
+                        canFinish = false;
+                        continue;
+                    }
                 }
 
 
                 //处理configuration中@Bean的注解
                 //直接调用方法生成bean，然后添加到工厂中
-                Method[] declaredMethods = clazz.getDeclaredMethods();
 
-                for (Method declaredMethod : declaredMethods) {
-                    if(declaredMethod.isAnnotationPresent(Bean.class)){
-                        try {
-                            Object[] objects = new Object[]{};
-                            Class<?>[] parameterTypes = declaredMethod.getParameterTypes();
+                if(canFinish){
 
-                            for (int i = 0; i < parameterTypes.length; i++) {
-                                Object paraObj = getBean(parameterTypes[i]);
-                                objects[i] = paraObj;
-                            }
+                    generateBeanAnnotation(bean);
 
-                            Object beanObj = declaredMethod.invoke(bean, objects);
-                            if(beanObj != null){
-                                singletonObject.put(declaredMethod.getName(),beanObj);
-                            }
-
-                        } catch (IllegalAccessException e) {
-                            e.printStackTrace();
-                        } catch (InvocationTargetException e) {
-                            e.printStackTrace();
-                        }
-                    }
+                    String beanName =GenerateBeanNameUtil.generateBeanName(clazz);
+                    singletonObject.put(beanName,bean);
+                    notFinishedObject.remove(beanName);
 
                 }
+
 
             }
 
         }
 
-
         //处理被标注了@Autowired的类
 
-        if(!singletonObject.isEmpty()){
+        if(!notFinishedObject.isEmpty()){
 
-            Collection<Object> beans = singletonObject.values();
-
-            for (Object bean : beans) {
+            notFinishedObject.forEach((beanName,bean)->{
 
                 Field[] declaredFields = bean.getClass().getDeclaredFields();
-
 
                 for (Field declaredField : declaredFields) {
 
@@ -263,9 +245,9 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
 
                             Qualifier qualifierAnno = declaredField.getAnnotation(Qualifier.class);
 
-                            String beanName = qualifierAnno.value();
+                            String qualifierName = qualifierAnno.value();
 
-                            Object o = getBean(beanName);
+                            Object o = getBean(qualifierName);
 
                             if(o !=null){
 
@@ -273,6 +255,10 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
                             }else {
                                 throw new RuntimeException("未找到名称为"+beanName+"的bean");
                             }
+
+                            singletonObject.put(beanName,o);
+                            notFinishedObject.remove(beanName);
+
 
                         }else {
 
@@ -282,10 +268,16 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
                             if(o !=null){
 
                                 ReflectionUtils.setFieldValue(bean,declaredField.getName(),o);
+
+                                singletonObject.put(beanName,bean);
+                                notFinishedObject.remove(beanName);
                             }
 
                         }
 
+
+                        //当autowired完成之后，就可以去实例化之前没有实例化的bean标签
+                        generateBeanAnnotation(bean);
 
 
                     }
@@ -293,12 +285,45 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
                 }
 
 
-            }
+
+            });
+
 
         }
 
     }
 
+    private void generateBeanAnnotation(Object bean) {
+        for (Method declaredMethod : bean.getClass().getDeclaredMethods()) {
+            if(  declaredMethod.isAnnotationPresent(Bean.class)){
+                try {
+                    Object[] objects = new Object[]{};
+                    Class<?>[] parameterTypes = declaredMethod.getParameterTypes();
+
+                    for (int i = 0; i < parameterTypes.length; i++) {
+                        Object paraObj = getBean(parameterTypes[i]);
+                        objects[i] = paraObj;
+                    }
+
+                    Object beanObj = declaredMethod.invoke(bean, objects);
+                    if(beanObj != null){
+                        singletonObject.put(declaredMethod.getName(),beanObj);
+                        notFinishedObject.remove(declaredMethod.getName());
+                    }
+
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        }
+    }
+
+    /**
+     * 将实现了接口的类注入容器实例
+     */
     @Override
     void afterProcess() {
 
