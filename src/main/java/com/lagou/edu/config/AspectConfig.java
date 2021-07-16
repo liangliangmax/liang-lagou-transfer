@@ -27,4 +27,12 @@ public class AspectConfig {
         return null;
     }
 
+    public static void main(String[] args) {
+
+        String expression = "* com.lagou.edu.service..*.*(..))";
+
+
+
+    }
+
 }

@@ -46,6 +46,8 @@ public class DataSourceTransactionManager extends AbstractTransactionManager {
         if(connection!=null){
             try {
                 connection.commit();
+                connection.close();
+                threadLocal.remove();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -60,6 +62,8 @@ public class DataSourceTransactionManager extends AbstractTransactionManager {
         if(connection!=null){
             try {
                 connection.rollback();
+                connection.close();
+                threadLocal.remove();
             } catch (SQLException e) {
                 e.printStackTrace();
             }

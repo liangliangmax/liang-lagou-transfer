@@ -8,5 +8,6 @@ import java.lang.annotation.*;
 @Target({ElementType.METHOD,ElementType.TYPE})
 public @interface Transactional {
 
+    Class rollbackFor() default RuntimeException.class;
 
 }
