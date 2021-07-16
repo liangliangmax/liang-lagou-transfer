@@ -213,14 +213,15 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
                 for (Method declaredMethod : declaredMethods) {
                     if(declaredMethod.isAnnotationPresent(Bean.class)){
                         try {
-                            List<Object> paraList = new ArrayList<>();
+                            Object[] objects = new Object[]{};
                             Class<?>[] parameterTypes = declaredMethod.getParameterTypes();
-                            for (Class<?> parameterType : parameterTypes) {
-                                Object paraObj = getBean(parameterType);
-                                paraList.add(paraObj);
+
+                            for (int i = 0; i < parameterTypes.length; i++) {
+                                Object paraObj = getBean(parameterTypes[i]);
+                                objects[i] = paraObj;
                             }
 
-                            Object beanObj = declaredMethod.invoke(bean, null);
+                            Object beanObj = declaredMethod.invoke(bean, objects);
                             if(beanObj != null){
                                 singletonObject.put(declaredMethod.getName(),beanObj);
                             }
@@ -238,6 +239,7 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
             }
 
 
+            System.out.println(111);
 
 
         }
