@@ -208,6 +208,7 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
 
 
                 //处理configuration中@Bean的注解
+                //直接调用方法生成bean，然后添加到工厂中
                 Method[] declaredMethods = clazz.getDeclaredMethods();
 
                 for (Method declaredMethod : declaredMethods) {
@@ -235,15 +236,66 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
 
                 }
 
-
             }
-
-
-            System.out.println(111);
-
 
         }
 
+
+        //处理被标注了@Autowired的类
+
+        if(!singletonObject.isEmpty()){
+
+            Collection<Object> beans = singletonObject.values();
+
+            for (Object bean : beans) {
+
+                Field[] declaredFields = bean.getClass().getDeclaredFields();
+
+
+                for (Field declaredField : declaredFields) {
+
+                    if(declaredField.isAnnotationPresent(Autowired.class)){
+
+                        //如果是执行了注入名称，直接按名称赋值
+                        if(declaredField.isAnnotationPresent(Qualifier.class)){
+
+                            Qualifier qualifierAnno = declaredField.getAnnotation(Qualifier.class);
+
+                            String beanName = qualifierAnno.value();
+
+                            Object o = getBean(beanName);
+
+                            if(o !=null){
+
+                                ReflectionUtils.setFieldValue(bean,declaredField.getName(),o);
+                            }else {
+                                throw new RuntimeException("未找到名称为"+beanName+"的bean");
+                            }
+
+                        }else {
+
+                            //如果没有指定名字，就按照类型注入
+                            Object o = getBean(declaredField.getType());
+
+                            if(o !=null){
+
+                                ReflectionUtils.setFieldValue(bean,declaredField.getName(),o);
+                            }
+
+                        }
+
+
+
+                    }
+
+                }
+
+
+            }
+
+        }
+
+        System.out.println(1111);
 
 
     }

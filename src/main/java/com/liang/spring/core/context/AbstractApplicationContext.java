@@ -57,11 +57,14 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
      */
     abstract Set<Class<?>> scan(String scanPath);
 
+    //加载配置文件
     abstract void loadProperties();
 
-    protected abstract void initBean();
+    //初始化bean
+    abstract void initBean();
 
-    protected abstract void populateBean();
+    //填充bean
+    abstract void populateBean();
 
 
 
@@ -114,7 +117,7 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
 
             for (Object value : values) {
 
-                if(value.getClass() == beanType){
+                if(value.getClass() == beanType || beanType.isAssignableFrom(value.getClass())){
                     return value;
                 }
             }
@@ -127,7 +130,7 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
     public Object getBean(String beanName,Class<?> beanType) {
         Object o = singletonObject.get(beanName);
 
-        if(o != null && o.getClass() == beanType){
+        if(o != null && o.getClass() == beanType || beanType.isAssignableFrom(o.getClass())){
             return o;
         }
 

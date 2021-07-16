@@ -1,12 +1,20 @@
 package com.lagou.edu.utils;
 
+import com.liang.spring.core.annotation.Autowired;
+import com.liang.spring.core.annotation.Component;
+
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 
 /**
  * @author 应癫
  */
+@Component
 public class ConnectionUtils {
+
+    @Autowired
+    private DataSource dataSource;
 
 
     private ThreadLocal<Connection> threadLocal = new ThreadLocal<>(); // 存储当前线程的连接
@@ -21,7 +29,7 @@ public class ConnectionUtils {
         Connection connection = threadLocal.get();
         if(connection == null) {
             // 从连接池拿连接并绑定到线程
-            connection = DruidUtils.getInstance().getConnection();
+            connection = dataSource.getConnection();
             // 绑定到当前线程
             threadLocal.set(connection);
         }

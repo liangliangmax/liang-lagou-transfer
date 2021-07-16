@@ -13,6 +13,8 @@ public class SpringServletContextListener implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent servletContextEvent) {
 
+        System.out.println("启动中，请稍后...");
+
         String scanPath = "";
 
         ServletContext servletContext = servletContextEvent.getServletContext();

@@ -9,5 +9,5 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD})
 public @interface Qualifier {
 
-    String value() default "";
+    String value();
 }
