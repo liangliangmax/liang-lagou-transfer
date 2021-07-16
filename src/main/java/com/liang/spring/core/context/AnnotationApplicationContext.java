@@ -152,6 +152,30 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
      * 如果Configuration中有@Autowired的属性，则这个类里面的bean先不初始化
      * 如果Configuration中没有@Autowired的属性，则这个类中的bean直接实例化然后填充别的属性
      *
+     * 填充完毕的bean就可以移到一级缓存里面了
+     *
+     * 然后是遍历二级缓存的map，从里面找到@Autowired的属性，开始从一级缓存拿别的bean开始组装，组装完了就放到一级缓存里面，删除二级缓存的bean
+     *
+     * 等到别的都填充完了，再次找到刚才有Configuration并且有@Autowired的属性，进行填充
+     *
+     * 这样相互依赖的问题就解决了
+     *
+     *
+     * 相互依赖的问题主要存在于
+     *
+     * Configuration中有的是@Value，有的是@Autowired，其中还有@Bean
+     *
+     * 此时想要生成bean，直接调用方法即可，@Value由于是先执行，所以这样的bean是可以生成的
+     * 但是如果是@Autowired，此时这个属性可能还没有被赋值或者初始化，导致执行生成bean的方法生成出来的内容是空的，所以才会有二级缓存的需求
+     *
+     * 例如：
+     * com.lagou.edu.config.DataSourceConfig 这个类里面可以生成datasource，
+     * com.lagou.edu.config.TransactionConfig这个类里面需要注入datasource
+     *
+     * 当com.lagou.edu.config.TransactionConfig这个类初始化开始执行Autowired的时候，可能datasource还没生成呢，导致其@Bean生成失败
+     *
+     *
+     *
      *
      *
      */
