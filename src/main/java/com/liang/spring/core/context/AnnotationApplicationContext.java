@@ -30,7 +30,7 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
     @Override
     public Set<Class<?>> scan(String scanPath) {
 
-        //获取所有的class类，判断是否带有注解
+        //获取所有的class类，
         try {
             Set<Class<?>> classes = ClassScanner.getScanner().scan(scanPath,getClassLoader());
             System.out.println("启动扫描包为："+scanPath);
@@ -70,7 +70,7 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
 
         //加载其他指定的配置文件
         for (Class<?> clazz : getClasses()) {
-            if(clazz.isAnnotationPresent(PropertySource.class)){
+            if(clazz.isAnnotationPresent(Configuration.class) && clazz.isAnnotationPresent(PropertySource.class)){
 
                 PropertySource propertySource = clazz.getAnnotation(PropertySource.class);
 

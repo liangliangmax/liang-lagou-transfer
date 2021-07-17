@@ -134,7 +134,70 @@
 
    iii:	com.liang.spring.core.context.AnnotationApplicationContext作为AbstractApplicationContext的子类，对上面的抽象方法做了实现
 
-   - 
+   - scan(scanPath) 中，调用了工具类ClassScanner，对指定的目录进行扫描，并且用指定的classLoader去加载class类：
+
+     ```java
+     public Set<Class<?>> scan(String scanPath) {
+         //获取所有的class类，
+         try {
+             Set<Class<?>> classes = ClassScanner.getScanner().scan(scanPath,getClassLoader());
+             return classes;
+         } catch (Exception e) {
+             e.printStackTrace();
+         }
+         return new HashSet<>();
+     }
+     ```
+
+   - loadProperties() 中，首先扫描resources包中的application.properties文件，将其解析成properties，放在全局的配置项中。
+
+     然后再查找有注解Configuration的，并且有PropertySource注解的，将其属性拿出来，就是要加载的文件，也是获取文件内容，将其解析成properties放入到全局的配置项中。这样配置文件加载完成。
+
+     
+
+   - createBeanDefinition() 开始生成beanDefinition。
+
+     根据扫描的类上的注解，如果有Configuration，Component，Service，Repository注解的，就认为是需要生成beanDefinition的，对其进行处理。
+
+     
+
+     所有的beanDefinition设置id和class属性；如果其中有@Autowired标注的属性，则对其dependsOn属性设置依赖名称；如果方法上有@Transactional修饰，则认为是需要创建代理对象的，将其createProxy设置为true。生成完成的beanDefinition保存到beanDefinitionMap中，供下一步bean生成做准备。这样beanDefinition解析完毕。
+
+     
+
+     这一步只是生成了beanDefinition信息，还未生成bean实例。
+
+     
+
+   - initBean() 通过beanDefinition信息，进行bean的初始化工作。
+
+     先调用class的无参构造方法，创建bean的实例对象，
+
+     
+
+     如果检测到没有dependsOn并且不需要生成代理对象，则将生成的bean放到singletonObject中，后期填充时候直接填充完成就是一个可用的bean。
+
+     
+
+     如果检测到有dependsOn，但是不需要生成代理对象，则将bean放到notFinishedObject中，因为需要确保他依赖的bean先生成，他自身才能生成。
+
+     
+
+     如果检测到需要生成代理对象，则直接放入createProxyObject中
+
+     
+
+   - 现在到了populateBean()方法，也是解决依赖关系的方法。
+
+     - 先循环singletonObject，因为其中的bean是通过配置文件就能填充完成的bean。扫描bean中的属性，如果被@Value所修饰，则通过表达式中的字符串作为key，去解析好的配置文件信息去找，找到之后通过反射将值赋值给该属性。
+
+     
+
+   - 填充bean完成后，所有的bean都是可用的，剩下的就是调用afterProcess()方法，为实现了com.liang.spring.core.ApplicationContextAware接口的的类注入容器本身，这样在servlet中获取bean的时候就可以获取容器实例，进而获取bean
+
+     
+
+     
 
    iv:	
 
