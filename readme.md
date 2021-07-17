@@ -15,7 +15,7 @@
 
      - 最开始时候定义一个map
 
-       - 如果代码中结构比较简单（@Configuration类中没有@Autowired属性，只有@Value的属性和@Bean的方法；@Component中只有@Autowired的属性，没有代理对象）并且控制一下实例化顺序：加载class--> 加载配置文件 --> 生成空的bean对象 --> 填充配置类 --> 生成@Bean对象 --> 遍历@Autowired 注入配置好的bean，这是可以通过一个map搞定的。
+       - 如果代码中结构比较简单（@Configuration类中没有@Autowired属性，只有@Value的属性和@Bean的方法；@Component中只有@Autowired的属性，没有代理对象）并且控制一下实例化顺序：加载class--> 加载配置文件 --> 生成空的bean对象 --> 填充配置类 --> 生成@Bean对象 --> 遍历@Autowired 注入配置好的bean，**这是可以通过一个map搞定的**。
 
          如：这是个配置类，其中的属性都是@Value，没有@Autowired这种，则这样的bean可以直接被生成出来，通过调用@Bean的方法，将对应的基础bean也生成出来放到map中。
 
@@ -114,7 +114,7 @@
          }
          ```
 
-         这两个类同时出现，问题就不好解决了。因为这两个bean都是configuration，是同等级别的，不能确保谁一定先创建完毕，如果第一个dataSource先创建的话还好办，如果第二个bean先被创建并且填充的时候，由于第一个@Bean还未执行，系统中还没有dataSource的bean，所以第二个bean填充时候就会找不到bean，这时候就需要第二个map，去放置没有填充完毕的bean。
+         这两个类同时出现，问题就不好解决了。因为这两个bean都是configuration，是同等级别的，不能确保谁一定先创建完毕，如果第一个dataSource先创建的话还好办，如果第二个bean先被创建并且填充的时候，由于第一个@Bean还未执行，系统中还没有dataSource的bean，所以第二个bean填充时候就会找不到bean，**这时候就需要第二个map，去放置没有填充完毕的bean**。
 
          
 
