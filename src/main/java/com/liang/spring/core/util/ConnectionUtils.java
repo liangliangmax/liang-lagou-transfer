@@ -1,7 +1,4 @@
-package com.lagou.edu.utils;
-
-import com.liang.spring.core.annotation.Autowired;
-import com.liang.spring.core.annotation.Component;
+package com.liang.spring.core.util;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -10,11 +7,13 @@ import java.sql.SQLException;
 /**
  * @author 应癫
  */
-@Component
 public class ConnectionUtils {
 
-    @Autowired
     private DataSource dataSource;
+
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     private ThreadLocal<Connection> threadLocal = new ThreadLocal<>(); // 存储当前线程的连接
 

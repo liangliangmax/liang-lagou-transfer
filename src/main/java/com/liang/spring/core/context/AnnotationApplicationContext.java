@@ -304,7 +304,9 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
                 singletonObject.put(beanName,jdkProxy);
                 createProxyObject.remove(beanName);
             }
+
         });
+        System.out.println(111);
     }
 
     /**

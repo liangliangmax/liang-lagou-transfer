@@ -2,7 +2,7 @@ package com.lagou.edu.dao.impl;
 
 import com.lagou.edu.pojo.Account;
 import com.lagou.edu.dao.AccountDao;
-import com.lagou.edu.utils.ConnectionUtils;
+import com.liang.spring.core.util.ConnectionUtils;
 import com.liang.spring.core.annotation.Autowired;
 import com.liang.spring.core.annotation.Repository;
 

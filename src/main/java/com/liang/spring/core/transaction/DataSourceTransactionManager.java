@@ -1,18 +1,19 @@
 package com.liang.spring.core.transaction;
 
 
+import com.liang.spring.core.util.ConnectionUtils;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 
 public class DataSourceTransactionManager extends AbstractTransactionManager {
 
-    private ThreadLocal<Connection> threadLocal = new ThreadLocal<>(); // 存储当前线程的连接
 
-    private DataSource dataSource;
+    private ConnectionUtils connectionUtils;
 
-    public void setDataSource(DataSource dataSource) {
-        this.dataSource = dataSource;
+    public void setConnectionUtils(ConnectionUtils connectionUtils) {
+        this.connectionUtils = connectionUtils;
     }
 
     @Override
@@ -21,53 +22,35 @@ public class DataSourceTransactionManager extends AbstractTransactionManager {
         /**
          * 判断当前线程中是否已经绑定连接，如果没有绑定，需要从连接池获取一个连接绑定到当前线程
          */
-        Connection connection = threadLocal.get();
-
-        if(connection == null) {
-            // 从连接池拿连接并绑定到线程
-            try {
-                connection = dataSource.getConnection();
-                connection.setAutoCommit(false);
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-            // 绑定到当前线程
-            threadLocal.set(connection);
-
-            System.out.println("事务管理器中connection = "+connection);
+        try {
+            Connection connection = connectionUtils.getCurrentThreadConn();
+            connection.setAutoCommit(false);
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-
     }
 
     @Override
     public void commit() {
 
-        Connection connection = threadLocal.get();
-        if(connection!=null){
-            try {
-                connection.commit();
-                connection.close();
-                threadLocal.remove();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+        try {
+            Connection currentThreadConn = connectionUtils.getCurrentThreadConn();
+            currentThreadConn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+
 
     }
 
     @Override
     public void rollback() {
 
-        Connection connection = threadLocal.get();
-        if(connection!=null){
-            try {
-                connection.rollback();
-                connection.close();
-                threadLocal.remove();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+        try {
+            Connection currentThreadConn = connectionUtils.getCurrentThreadConn();
+            currentThreadConn.rollback();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 }
