@@ -17,11 +17,9 @@ public class TransferServiceImpl implements TransferService {
     @Autowired
     private AccountDao accountDao;
 
-
     @Transactional
     @Override
     public void transfer(String fromCardNo, String toCardNo, int money) throws Exception {
-
 
         Account from = accountDao.queryAccountByCardNo(fromCardNo);
         Account to = accountDao.queryAccountByCardNo(toCardNo);
@@ -30,10 +28,8 @@ public class TransferServiceImpl implements TransferService {
         to.setMoney(to.getMoney()+money);
 
         accountDao.updateAccountByCardNo(to);
-        //int c = 1/0;
+        int c = 1/0;
         accountDao.updateAccountByCardNo(from);
-
-
 
     }
 }

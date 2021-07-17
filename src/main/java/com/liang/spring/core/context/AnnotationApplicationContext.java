@@ -4,6 +4,8 @@ import com.liang.spring.core.ApplicationContextAware;
 import com.liang.spring.core.annotation.*;
 import com.liang.spring.core.entity.BeanDefinition;
 import com.liang.spring.core.scaner.ClassScanner;
+import com.liang.spring.core.transaction.TransactionManager;
+import com.liang.spring.core.transaction.TransactionalProxyFactory;
 import com.liang.spring.core.util.GenerateBeanNameUtil;
 import com.liang.spring.core.util.ReflectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -255,47 +257,94 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
         //2.填充有依赖的bean
         notFinishedObject.forEach((beanName,bean)->{
 
-            Field[] declaredFields = bean.getClass().getDeclaredFields();
+            injectionAutowired(beanName, bean);
 
-            for (Field declaredField : declaredFields) {
-
-                if(declaredField.isAnnotationPresent(Autowired.class)){
-
-                    //如果是执行了注入名称，直接按名称赋值
-                    if(declaredField.isAnnotationPresent(Qualifier.class)){
-
-                        Qualifier qualifierAnno = declaredField.getAnnotation(Qualifier.class);
-                        String qualifierName = qualifierAnno.value();
-
-                        Object o = getBean(qualifierName);
-                        if(o !=null){
-                            ReflectionUtils.setFieldValue(bean,declaredField.getName(),o);
-                        }else {
-                            throw new RuntimeException("未找到名称为"+beanName+"的bean");
-                        }
-                        singletonObject.put(beanName,o);
-                        notFinishedObject.remove(beanName);
-                    }else {
-                        //如果没有指定名字，就按照类型注入
-                        Object o = getBean(declaredField.getType());
-                        if(o !=null){
-                            ReflectionUtils.setFieldValue(bean,declaredField.getName(),o);
-                            singletonObject.put(beanName,bean);
-                            notFinishedObject.remove(beanName);
-                        }
-                    }
-                    //当autowired完成之后，就可以去实例化之前没有实例化的bean标签
-                    generateBeanAnnotation(bean);
-                }
-            }
+            //当autowired完成之后，就可以去实例化之前没有实例化的bean标签
+            generateBeanAnnotation(bean);
         });
 
         //3.填充需要生成代理对象的bean
         createProxyObject.forEach((beanName,bean)->{
 
+            Class<?> beanClass = bean.getClass();
 
+            //如果有接口，则用jdk的动态代理
+            if(beanClass.getInterfaces().length!=0){
+                TransactionalProxyFactory transactionalProxyFactory = new TransactionalProxyFactory();
 
+                TransactionManager transactionManager = (TransactionManager) getBean(TransactionManager.class);
+                if(transactionManager == null){
+                    throw  new RuntimeException("需要定义transactionManager");
+                }
+
+                transactionalProxyFactory.setTransactionManager(transactionManager);
+
+                injectionAutowired(beanName,bean);
+
+                Object jdkProxy = transactionalProxyFactory.getJdkProxy(bean);
+
+                singletonObject.put(beanName,jdkProxy);
+                createProxyObject.remove(beanName);
+
+            }else {
+                //如果没有接口，则用cglib的动态代理
+                TransactionalProxyFactory transactionalProxyFactory = new TransactionalProxyFactory();
+
+                TransactionManager transactionManager = (TransactionManager) getBean(TransactionManager.class);
+                if(transactionManager == null){
+                    throw  new RuntimeException("需要定义transactionManager");
+                }
+
+                transactionalProxyFactory.setTransactionManager(transactionManager);
+
+                injectionAutowired(beanName,bean);
+
+                Object jdkProxy = transactionalProxyFactory.getCglibProxy(bean);
+
+                singletonObject.put(beanName,jdkProxy);
+                createProxyObject.remove(beanName);
+            }
         });
+    }
+
+    /**
+     * 填充autowired的属性
+     * @param beanName
+     * @param bean
+     */
+    private void injectionAutowired(String beanName, Object bean) {
+        Field[] declaredFields = bean.getClass().getDeclaredFields();
+
+        for (Field declaredField : declaredFields) {
+
+            if(declaredField.isAnnotationPresent(Autowired.class)){
+
+                //如果是执行了注入名称，直接按名称赋值
+                if(declaredField.isAnnotationPresent(Qualifier.class)){
+
+                    Qualifier qualifierAnno = declaredField.getAnnotation(Qualifier.class);
+                    String qualifierName = qualifierAnno.value();
+
+                    Object o = getBean(qualifierName);
+                    if(o !=null){
+                        ReflectionUtils.setFieldValue(bean,declaredField.getName(),o);
+                    }else {
+                        throw new RuntimeException("未找到名称为"+beanName+"的bean");
+                    }
+                    singletonObject.put(beanName,o);
+                    notFinishedObject.remove(beanName);
+                }else {
+                    //如果没有指定名字，就按照类型注入
+                    Object o = getBean(declaredField.getType());
+                    if(o !=null){
+                        ReflectionUtils.setFieldValue(bean,declaredField.getName(),o);
+                        singletonObject.put(beanName,bean);
+                        notFinishedObject.remove(beanName);
+                    }
+                }
+
+            }
+        }
     }
 
     /**

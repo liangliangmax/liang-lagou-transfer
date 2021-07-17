@@ -39,27 +39,22 @@ public class TransactionalProxyFactory {
                     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
                         Object result = null;
 
-                        //因为这里不能使用aop的东西，主要是解析太麻烦了，所以直接在动态代理类上做判断
-                        if(method.isAnnotationPresent(Transactional.class)){
-                            try{
-                                // 开启事务(关闭事务的自动提交)
-                                transactionManager.beginTransaction();
+                        try{
+                            // 开启事务(关闭事务的自动提交)
+                            transactionManager.beginTransaction();
 
-                                result = method.invoke(obj,args);
-
-                                // 提交事务
-                                transactionManager.commit();
-                            }catch (Exception e) {
-                                e.printStackTrace();
-                                // 回滚事务
-                                transactionManager.rollback();
-
-                                // 抛出异常便于上层servlet捕获
-                                throw e;
-
-                            }
-                        }else {
                             result = method.invoke(obj,args);
+
+                            // 提交事务
+                            transactionManager.commit();
+                        }catch (Exception e) {
+                            e.printStackTrace();
+                            // 回滚事务
+                            transactionManager.rollback();
+
+                            // 抛出异常便于上层servlet捕获
+                            throw e;
+
                         }
 
                         return result;
@@ -80,28 +75,25 @@ public class TransactionalProxyFactory {
             public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
                 Object result = null;
 
-                if(method.isAnnotationPresent(Transactional.class)){
-                    try{
-                        // 开启事务(关闭事务的自动提交)
-                        transactionManager.beginTransaction();
+                try{
+                    // 开启事务(关闭事务的自动提交)
+                    transactionManager.beginTransaction();
 
-                        result = method.invoke(obj,objects);
-
-                        // 提交事务
-
-                        transactionManager.commit();
-                    }catch (Exception e) {
-                        e.printStackTrace();
-                        // 回滚事务
-                        transactionManager.rollback();
-
-                        // 抛出异常便于上层servlet捕获
-                        throw e;
-
-                    }
-                }else {
                     result = method.invoke(obj,objects);
+
+                    // 提交事务
+
+                    transactionManager.commit();
+                }catch (Exception e) {
+                    e.printStackTrace();
+                    // 回滚事务
+                    transactionManager.rollback();
+
+                    // 抛出异常便于上层servlet捕获
+                    throw e;
+
                 }
+
 
                 return result;
             }
