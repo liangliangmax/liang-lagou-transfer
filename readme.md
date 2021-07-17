@@ -9,7 +9,7 @@
 
 ### 正文
 
-1. 总结
+1. 发自肺腑的总结
 
    
 
@@ -37,7 +37,13 @@
 
    ​		&ensp;&ensp;-- entity：定义了封装类信息的实体
 
-   ​		&ensp;&ensp;-- 
+   ​		&ensp;&ensp;-- scanner：工具类，用于扫描指定路径下的class文件
+
+   ​		&ensp;&ensp;-- transaction：定义了事务相关的类
+
+   ​		&ensp;&ensp;-- util：一些工具类
+
+   ​		&ensp;&ensp;-- ApplicationContextAware：容器注入的接口
 
    
 
@@ -45,7 +51,51 @@
 
    ​	
 
-   
+   3）启动过程描述
+
+   i:	由于项目是web项目，而且没有引入spring-web的相关内容，所以需要使用tomcat的相关功能启动容器。
+
+   - 首相定义了com.liang.spring.servlet.SpringServletContextListener，实现了tomcat的ServletContextListener接口，这样tomcat启动时候就会执行contextInitialized里面的方法。
+
+   - 在web.xml中配置该监听器，并且配置了包扫描的的路径，即扫描用户自己项目的包目录。
+
+   - 当tomcat启动时候，就会调用监听器，监听器里面获取了扫描包参数后，将扫描包的目录传给AnnotationApplicationContext容器，随即开始容器的初始化
+
+     ```java
+     	@Override
+         public void contextInitialized(ServletContextEvent servletContextEvent) {
+             System.out.println("启动中，请稍后...");
+             String scanPath = "";
+             ServletContext servletContext = servletContextEvent.getServletContext();
+             Enumeration<String> initParameterNames = servletContext.getInitParameterNames();
+             while (initParameterNames.hasMoreElements()){
+                 String parameter = initParameterNames.nextElement();
+                 if (parameter.equalsIgnoreCase("scanPath")){
+                     scanPath = servletContext.getInitParameter(parameter);
+                     break;
+                 }
+             }
+     
+             new AnnotationApplicationContext(scanPath);
+         }
+     ```
+
+     
+
+   ii:	系统中定义了BeanFactory作为容器的顶级接口，里面定义了getBean的方法。
+
+   - com.liang.spring.core.context.AbstractApplicationContext作为BeanFactory的抽象子类，里面声明了一些属性：
+     - classLoader是作为整体的类加载器，加载扫描包的class时候会用到，如果用Thread获取当前的classLoader会出现加载不到类的异常，所以这里需要定义一个属性。
+     - 
+   - 
+
+   iii:	
+
+   iv:	
+
+   v:	
+
+   vi:	
 
    
 
