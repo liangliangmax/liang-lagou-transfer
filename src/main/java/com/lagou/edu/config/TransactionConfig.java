@@ -15,6 +15,7 @@ public class TransactionConfig {
     @Autowired
     private DataSource dataSource;
 
+    @Bean
     public ConnectionUtils connectionUtils(){
         ConnectionUtils connectionUtils = new ConnectionUtils();
         connectionUtils.setDataSource(dataSource);
