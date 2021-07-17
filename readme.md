@@ -11,7 +11,122 @@
 
 1. 发自肺腑的总结
 
-   
+   - 之前看源码的时候，大家都在讲三级缓存，大概也知道是干什么用的，于是这次就实验一下，不用三级缓存能不能解决依赖的问题。
+
+     - 最开始时候定义一个map
+
+       - 如果代码中结构比较简单（@Configuration类中没有@Autowired属性，只有@Value的属性和@Bean的方法；@Component中只有@Autowired的属性，没有代理对象）并且控制一下实例化顺序：加载class--> 加载配置文件 --> 生成空的bean对象 --> 填充配置类 --> 生成@Bean对象 --> 遍历@Autowired 注入配置好的bean，这是可以通过一个map搞定的。
+
+         如：这是个配置类，其中的属性都是@Value，没有@Autowired这种，则这样的bean可以直接被生成出来，通过调用@Bean的方法，将对应的基础bean也生成出来放到map中。
+
+         ```java
+         @Configuration
+         @PropertySource("classpath:jdbc.properties")
+         public class DataSourceConfig {
+         
+             @Value("${jdbc.driver}")
+             private String driverClassName;
+             @Value("${jdbc.url}")
+             private String url;
+             @Value("${jdbc.username}")
+             private String username;
+             @Value("${jdbc.password}")
+             private String password;
+         
+             @Bean
+             public DataSource dataSource(){
+                 DruidDataSource druidDataSource = new DruidDataSource();
+                 druidDataSource.setDriverClassName(driverClassName);
+                 druidDataSource.setUrl(url);
+                 druidDataSource.setUsername(username);
+                 druidDataSource.setPassword(password);
+                 return druidDataSource;
+             }
+         }
+         ```
+
+         其他的都是@Autowired这种，如：
+
+         ```java
+         @Repository
+         public class JdbcAccountDaoImpl implements AccountDao {
+         
+             @Autowired
+             private DataSource dataSource;
+             .......
+         }
+         ```
+
+         这样他们填充bean的时候，基础bean已经是完整的bean，可以通过类型或者名称直接被注入，无所谓service先注入dao还是dao先注入dataSource，只要是@Autowired的这种，即使注入空对象也无所谓，空对象会被慢慢填充完成，到最后互相依赖的属性会被填满。
+
+         
+
+         但是如果出现了这种情况：
+
+         ```java
+         @Configuration
+         @PropertySource("classpath:jdbc.properties")
+         public class DataSourceConfig {
+         
+             @Value("${jdbc.driver}")
+             private String driverClassName;
+             @Value("${jdbc.url}")
+             private String url;
+             @Value("${jdbc.username}")
+             private String username;
+             @Value("${jdbc.password}")
+             private String password;
+         
+             @Bean
+             public DataSource dataSource(){
+                 DruidDataSource druidDataSource = new DruidDataSource();
+                 druidDataSource.setDriverClassName(driverClassName);
+                 druidDataSource.setUrl(url);
+                 druidDataSource.setUsername(username);
+                 druidDataSource.setPassword(password);
+                 return druidDataSource;
+             }
+         }
+         ```
+
+         ```java
+         @Configuration
+         public class TransactionConfig {
+         
+             @Autowired
+             private DataSource dataSource;
+         
+             @Bean
+             public ConnectionUtils connectionUtils(){
+                 ConnectionUtils connectionUtils = new ConnectionUtils();
+                 connectionUtils.setDataSource(dataSource);
+         
+                 return connectionUtils;
+             }
+         
+             @Bean
+             public TransactionManager transactionManager(){
+                 DataSourceTransactionManager transactionManager = new DataSourceTransactionManager();
+                 transactionManager.setConnectionUtils(connectionUtils());
+                 return transactionManager;
+             }
+         
+         }
+         ```
+
+         这两个类同时出现，问题就不好解决了。因为这两个bean都是configuration，是同等级别的，不能确保谁一定先创建完毕，如果第一个dataSource先创建的话还好办，如果第二个bean先被创建并且填充的时候，由于第一个@Bean还未执行，系统中还没有dataSource的bean，所以第二个bean填充时候就会找不到bean，这时候就需要第二个map，去放置没有填充完毕的bean。
+
+         
+
+     - 定义两个map
+
+     - 定义三个map
+
+   - 为什么要定义BeanDefinition
+
+   - 
+
+     
 
 2. 结构
 
