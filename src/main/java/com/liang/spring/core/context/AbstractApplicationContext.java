@@ -4,6 +4,7 @@ import com.liang.spring.core.annotation.Component;
 import com.liang.spring.core.annotation.Configuration;
 import com.liang.spring.core.annotation.Repository;
 import com.liang.spring.core.annotation.Service;
+import com.liang.spring.core.entity.BeanDefinition;
 import com.liang.spring.core.util.CollectionsUtil;
 
 import java.util.*;
@@ -23,11 +24,16 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
     private Set<Class<?>> classes = new HashSet<>();
 
 
+    //存放beanDefinition的map
+    protected static Map<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
+
+
 
     protected static Map<String,Object> singletonObject = new ConcurrentHashMap<>();  // 存储对象
 
-
     protected static Map<String,Object> notFinishedObject = new ConcurrentHashMap<>();  // 存放一些还没创建完的对象
+
+    protected static Map<String,Object> createProxyObject = new ConcurrentHashMap<>();  // 存放一些需要创建代理对象的对象
 
     public AbstractApplicationContext(String scanPath){
         refresh(scanPath);
@@ -40,15 +46,13 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
 
         loadProperties();
 
+        createBeanDefinition();
 
         initBean();
 
-
         populateBean();
 
-
         afterProcess();
-
 
     }
 
@@ -58,6 +62,9 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
      * @param scanPath
      */
     abstract Set<Class<?>> scan(String scanPath);
+
+    //加载beanDefinition
+    protected abstract void createBeanDefinition();
 
     //加载配置文件
     abstract void loadProperties();
@@ -96,6 +103,7 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
     public Set<Class<?>> getClasses() {
         return classes;
     }
+
 
 
 

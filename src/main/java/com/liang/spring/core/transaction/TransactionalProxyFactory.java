@@ -18,7 +18,6 @@ import java.lang.reflect.Proxy;
 
 public class TransactionalProxyFactory {
 
-
     private TransactionManager transactionManager;
 
     public void setTransactionManager(TransactionManager transactionManager) {

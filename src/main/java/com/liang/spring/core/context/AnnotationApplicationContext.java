@@ -2,6 +2,7 @@ package com.liang.spring.core.context;
 
 import com.liang.spring.core.ApplicationContextAware;
 import com.liang.spring.core.annotation.*;
+import com.liang.spring.core.entity.BeanDefinition;
 import com.liang.spring.core.scaner.ClassScanner;
 import com.liang.spring.core.util.GenerateBeanNameUtil;
 import com.liang.spring.core.util.ReflectionUtils;
@@ -43,6 +44,8 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
 
         return new HashSet<>();
     }
+
+
 
 
     @Override
@@ -101,6 +104,45 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
 
     }
 
+    /**
+     * 初始化生成beanDefinitino
+     */
+    @Override
+    protected void createBeanDefinition() {
+
+        Set<Class<?>> classes = getClasses();
+
+        for (Class<?> clazz : classes) {
+
+            if(isNeedInit(clazz)){
+
+                BeanDefinition beanDefinition = new BeanDefinition();
+
+                String id = GenerateBeanNameUtil.generateBeanName(clazz);
+                beanDefinition.setId(id);
+                beanDefinition.setClazz(clazz);
+
+                Field[] declaredFields = clazz.getDeclaredFields();
+
+                for (Field declaredField : declaredFields) {
+                    if(declaredField.isAnnotationPresent(Autowired.class)) {
+                        Class<?> type = declaredField.getType();
+                        beanDefinition.getDependsOn().add(type.getName());
+                    }
+                }
+
+                Method[] declaredMethods = clazz.getDeclaredMethods();
+                for (Method declaredMethod : declaredMethods) {
+                    if(declaredMethod.isAnnotationPresent(Transactional.class)){
+                        beanDefinition.setCreateProxy(true);
+                    }
+                }
+
+                beanDefinitionMap.put(id,beanDefinition);
+            }
+        }
+    }
+
 
     /**
      * 先吧所有的带指定注解的bean创建出来，然后是给bean里面的属性赋值
@@ -109,38 +151,34 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
      */
     @Override
     protected void initBean() {
+        beanDefinitionMap.forEach((key,beanDefinition)->{
 
-        for (Class<?> clazz : getClasses()) {
+            Class beanClass = beanDefinition.getClazz();
 
-            if(isNeedInit(clazz)){
+            try {
+                Object bean = beanClass.newInstance();
 
-                doInit(clazz);
+                //这种是没有依赖并且不需要创建代理对象，可以直接创建bean
+                if(!beanDefinition.isCreateProxy() && beanDefinition.getDependsOn().isEmpty()) {
 
+                    singletonObject.put(key, bean);
+                } else if(!beanDefinition.getDependsOn().isEmpty() && !beanDefinition.isCreateProxy()){
+                    //有依赖的bean
+                    notFinishedObject.put(key, bean);
+                }else {
+                    //需要创建代理对象的bean
+                    createProxyObject.put(key,bean);
+                }
+            } catch (InstantiationException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
             }
-        }
+
+        });
+
 
     }
-
-    private void doInit(Class<?> clazz) {
-        //将class进行实例化
-        try {
-            //生成一个空对象，将对象放入bean的map中
-            Object o = clazz.newInstance();
-
-            //为生成的实例取id
-            //如果指定了id，则直接取id，如果没有指定，则用类名
-            //先默认给个类名为id
-            String id = GenerateBeanNameUtil.generateBeanName(clazz);
-
-            notFinishedObject.put(id,o);
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
-
-    }
-
 
     /**
      * 填充bean里面的属性
@@ -172,148 +210,98 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
      *
      * 当com.lagou.edu.config.TransactionConfig这个类初始化开始执行Autowired的时候，可能datasource还没生成呢，导致其@Bean生成失败
      *
-     *
-     *
-     *
-     *
      */
     @Override
     protected void populateBean() {
 
-        //先填充配置类
-        for (Class<?> clazz : getClasses()) {
+        //先填充直接生成的bean
+        singletonObject.forEach((beanName,bean)->{
+            Field[] declaredFields = bean.getClass().getDeclaredFields();
 
-            //标记是否可以完成生成bean
-            boolean canFinish = true;
+            for (Field declaredField : declaredFields) {
 
-            //如果标注了Configuration，先看看有没有@Value的属性，有的话直接注入属性
-            if(clazz.isAnnotationPresent(Configuration.class)){
+                if(declaredField.isAnnotationPresent(Value.class)){
+                    Value valueAnno = declaredField.getAnnotation(Value.class);
 
-                Field[] declaredFields = clazz.getDeclaredFields();
+                    String regex = valueAnno.value();
 
-                Object bean = getBean(clazz);
+                    if(StringUtils.isBlank(regex)){
 
-                for (Field declaredField : declaredFields) {
+                        throw new RuntimeException(declaredField.getName()+"上占位符信息不能为空");
+                    }
 
-                    if(declaredField.isAnnotationPresent(Value.class)){
+                    //如果没用表达式，直接写的字符串，则直接将字符串赋值给属性
+                    if(bean !=null){
+                        if(!regex.contains("${")){
+                            ReflectionUtils.setFieldValue(bean,declaredField.getName(),regex);
+                        }else {
+                            String propKey = regex.replace("${", "").replace("}", "");
 
-                        Value valueAnno = declaredField.getAnnotation(Value.class);
+                            String propValue = getProperties(propKey);
 
-                        String regex = valueAnno.value();
-
-                        if(StringUtils.isBlank(regex)){
-
-                            throw new RuntimeException(clazz.getName()+"的"+declaredField.getName()+"上占位符信息不能为空");
-                        }
-
-
-                        //如果没用表达式，直接写的字符串，则直接将字符串赋值给属性
-                        if(bean !=null){
-                            if(!regex.contains("${")){
-                                ReflectionUtils.setFieldValue(bean,declaredField.getName(),regex);
-                            }else {
-                                String propKey = regex.replace("${", "").replace("}", "");
-
-                                String propValue = getProperties(propKey);
-
-                                if(StringUtils.isBlank(propValue)){
-                                    throw new RuntimeException("无法找到"+propKey+"对应的配置文件");
-                                }
-                                ReflectionUtils.setFieldValue(bean,declaredField.getName(),propValue);
+                            if(StringUtils.isBlank(propValue)){
+                                throw new RuntimeException("无法找到"+propKey+"对应的配置文件");
                             }
+                            ReflectionUtils.setFieldValue(bean,declaredField.getName(),propValue);
                         }
                     }
 
-                    //此时autowired还不能处理，
-                    if(declaredField.isAnnotationPresent(Autowired.class)){
-                        canFinish = false;
-                        continue;
-                    }
                 }
-
-
-                //处理configuration中@Bean的注解
-                //直接调用方法生成bean，然后添加到工厂中
-
-                if(canFinish){
-
-                    generateBeanAnnotation(bean);
-
-                    String beanName =GenerateBeanNameUtil.generateBeanName(clazz);
-                    singletonObject.put(beanName,bean);
-                    notFinishedObject.remove(beanName);
-
-                }
-
-
             }
 
-        }
+            generateBeanAnnotation(bean);
+        });
 
-        //处理被标注了@Autowired的类
+        //2.填充有依赖的bean
+        notFinishedObject.forEach((beanName,bean)->{
 
-        if(!notFinishedObject.isEmpty()){
+            Field[] declaredFields = bean.getClass().getDeclaredFields();
 
-            notFinishedObject.forEach((beanName,bean)->{
+            for (Field declaredField : declaredFields) {
 
-                Field[] declaredFields = bean.getClass().getDeclaredFields();
+                if(declaredField.isAnnotationPresent(Autowired.class)){
 
-                for (Field declaredField : declaredFields) {
+                    //如果是执行了注入名称，直接按名称赋值
+                    if(declaredField.isAnnotationPresent(Qualifier.class)){
 
-                    if(declaredField.isAnnotationPresent(Autowired.class)){
+                        Qualifier qualifierAnno = declaredField.getAnnotation(Qualifier.class);
+                        String qualifierName = qualifierAnno.value();
 
-                        //如果是执行了注入名称，直接按名称赋值
-                        if(declaredField.isAnnotationPresent(Qualifier.class)){
-
-                            Qualifier qualifierAnno = declaredField.getAnnotation(Qualifier.class);
-
-                            String qualifierName = qualifierAnno.value();
-
-                            Object o = getBean(qualifierName);
-
-                            if(o !=null){
-
-                                ReflectionUtils.setFieldValue(bean,declaredField.getName(),o);
-                            }else {
-                                throw new RuntimeException("未找到名称为"+beanName+"的bean");
-                            }
-
-                            singletonObject.put(beanName,o);
-                            notFinishedObject.remove(beanName);
-
-
+                        Object o = getBean(qualifierName);
+                        if(o !=null){
+                            ReflectionUtils.setFieldValue(bean,declaredField.getName(),o);
                         }else {
-
-                            //如果没有指定名字，就按照类型注入
-                            Object o = getBean(declaredField.getType());
-
-                            if(o !=null){
-
-                                ReflectionUtils.setFieldValue(bean,declaredField.getName(),o);
-
-                                singletonObject.put(beanName,bean);
-                                notFinishedObject.remove(beanName);
-                            }
-
+                            throw new RuntimeException("未找到名称为"+beanName+"的bean");
                         }
-
-
-                        //当autowired完成之后，就可以去实例化之前没有实例化的bean标签
-                        generateBeanAnnotation(bean);
-
+                        singletonObject.put(beanName,o);
+                        notFinishedObject.remove(beanName);
+                    }else {
+                        //如果没有指定名字，就按照类型注入
+                        Object o = getBean(declaredField.getType());
+                        if(o !=null){
+                            ReflectionUtils.setFieldValue(bean,declaredField.getName(),o);
+                            singletonObject.put(beanName,bean);
+                            notFinishedObject.remove(beanName);
+                        }
                     }
+                    //当autowired完成之后，就可以去实例化之前没有实例化的bean标签
+                    generateBeanAnnotation(bean);
                 }
-            });
-        }
+            }
+        });
 
-        //最后在处理一下声明式事务的代理类
-        singletonObject.forEach((beanName,bean)->{
+        //3.填充需要生成代理对象的bean
+        createProxyObject.forEach((beanName,bean)->{
+
 
 
         });
-
     }
 
+    /**
+     * 生成@Bean标记的方法
+     * @param bean
+     */
     private void generateBeanAnnotation(Object bean) {
         for (Method declaredMethod : bean.getClass().getDeclaredMethods()) {
             if(  declaredMethod.isAnnotationPresent(Bean.class)){
@@ -329,7 +317,6 @@ public class AnnotationApplicationContext extends AbstractApplicationContext {
                     Object beanObj = declaredMethod.invoke(bean, objects);
                     if(beanObj != null){
                         singletonObject.put(declaredMethod.getName(),beanObj);
-                        notFinishedObject.remove(declaredMethod.getName());
                     }
 
                 } catch (IllegalAccessException e) {
