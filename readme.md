@@ -191,22 +191,18 @@
 
      - 先循环singletonObject，因为其中的bean是通过配置文件就能填充完成的bean。扫描bean中的属性，如果被@Value所修饰，则通过表达式中的字符串作为key，去解析好的配置文件信息去找，找到之后通过反射将值赋值给该属性。
 
+     - 然后循环notFinishedObject，这部分是需要注入别的bean的。先判断要注入的是什么名称或类型，然后去singletonObject中按名称或这按类型去找，找到了就给属性赋值。
+
+     - 最后处理需要生成代理对象的bean。现在因为不能使用spring的aop，而且单独使用aspectj异常的麻烦，所以这里简单的认为方法上标了Transactional，就是需要声明式事务的，需要创建代理对象的。
+
+       通过调用com.liang.spring.core.transaction.TransactionalProxyFactory来获取有事务控制的代理对象，等到运行方法时候，就会通过jdbc去控制事务开启。
+
      
 
    - 填充bean完成后，所有的bean都是可用的，剩下的就是调用afterProcess()方法，为实现了com.liang.spring.core.ApplicationContextAware接口的的类注入容器本身，这样在servlet中获取bean的时候就可以获取容器实例，进而获取bean
 
-     
-
-     
-
-   iv:	
-
-   v:	
-
-   vi:	
-
-   
-
    
 
 3. 启动运行
+
+   启动tomcat，然后请求地址接口，即可看到事务控制的效果
