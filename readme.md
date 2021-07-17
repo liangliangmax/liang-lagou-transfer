@@ -31,13 +31,13 @@
 
    ​	-- core
 
-   ​		-- annotation：包中定义了spring常用的一些注解，比如@Service，@Transactional等
+   ​		&ensp;&ensp;-- annotation：包中定义了spring常用的一些注解，比如@Service，@Transactional等
 
-   ​		-- context：包中定义了核心模块
+   ​		&ensp;&ensp;-- context：包中定义了核心模块
 
-   ​		-- entity：定义了封装类信息的实体
+   ​		&ensp;&ensp;-- entity：定义了封装类信息的实体
 
-   ​		-- 
+   ​		&ensp;&ensp;-- 
 
    
 
