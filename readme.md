@@ -120,6 +120,14 @@
 
      - 定义两个map
 
+       当定义了两个map的时候，还是刚才那种情况，在class解析的时候如果有@Configuration并且有@Autowired，这样的bean直接扔到二级缓存中，因为他自身没办法填充完毕，得等待同样有@Configuration并且只有@Value的这种bean先创建出来，才能通过注入更基础的bean来完成自身的填充。当然两个map也是有执行顺序的，加载class--> 加载配置文件 --> 生成空的bean对象 --> 填充配置类 --> 如果配置类中Autowired，放二级缓存 --> 生成一级缓存中的@Bean对象  --> 遍历二级缓存，生成其Bean对象 --> 遍历@Autowired 注入配置好的bean，这样的话两个map就搞定了大部分情况。
+
+       
+
+       如果系统发现需要创建代理对象，这时候两个map也搞不定了。因为
+
+       
+
      - 定义三个map
 
    - 为什么要定义BeanDefinition
