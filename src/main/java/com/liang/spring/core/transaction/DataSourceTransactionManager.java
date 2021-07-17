@@ -7,7 +7,6 @@ import java.sql.SQLException;
 
 public class DataSourceTransactionManager extends AbstractTransactionManager {
 
-
     private ThreadLocal<Connection> threadLocal = new ThreadLocal<>(); // 存储当前线程的连接
 
     private DataSource dataSource;
